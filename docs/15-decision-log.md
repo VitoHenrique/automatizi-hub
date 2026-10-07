@@ -81,6 +81,21 @@ O repositório GitHub antigo e o projeto Supabase antigo foram deletados. O Auto
 - Impacto: Toda empresa possui progresso quantificado de onboarding, histórico cronológico de atividades e suporte a restrição de escopo por membership.
 - Responsável: Antigravity / Vito
 
+## DEC-012 — Agentes com Critérios Formais de Prontidão de Produção, Versionamento Imutável e Tarefas Contextuais
+- Data: 2026-10-07
+- Status: adotada
+- Contexto: A Fase 2 requer gestão de agentes de IA operando por empresa, com separação explícita entre ciclo de vida e saúde operacional (DEC-003), controle formal de entrada em produção (docs/07-agent-lifecycle.md) e tarefas contextuais sem misturar texto ou prefixos mágicos.
+- Decisão: 
+  1. Criação das tabelas 'agents', 'agent_versions' e 'tasks' com isolamento por 'organization_id' e RLS reforçado no banco.
+  2. Promoção a produção isolada no endpoint '/api/v1/agents/[id]/promote' exigindo todos os 6 critérios de prontidão (documentação, integrações, testes, responsável, rollback e aprovação formal), bloqueando saltos via PATCH simples.
+  3. Versionamento semântico imutável (X.Y.Z) gerando snapshots da configuração e marcando a versão ativa como produção.
+  4. Tarefas e marcos tipados formalmente por kind (task, milestone, blocker, decision) e status (todo, in_progress, done, blocked), vinculados por foreign keys diretas sem gambiarras de texto.
+  5. Seed controlado dos 3 agentes pilotos da DBX Global (Gestor de Tráfego, SDR de Resposta Imediata e Split de Leads).
+- Alternativas: Permitir promoção para produção através de edição direta de campos ou armazenar versões apenas como strings sem snapshot de configuração.
+- Motivo: Segurança operacional crítica para plataformas B2B autônomas; garante rastreabilidade, compliance e estabilidade das automações em escala.
+- Impacto: Impossível colocar um agente em produção de forma arbitrária; todo rollout gera auditoria, snapshot de versão e registro de atividade legível.
+- Responsável: Antigravity / Vito
+
 ## Template para novas decisões
 ### DEC-XXX — Título
 - Data:
@@ -91,3 +106,4 @@ O repositório GitHub antigo e o projeto Supabase antigo foram deletados. O Auto
 - Motivo:
 - Impacto:
 - Responsável:
+

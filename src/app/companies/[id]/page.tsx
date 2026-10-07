@@ -6,9 +6,12 @@ import { CompanyStatusBadge } from "@/components/companies/CompanyStatusBadge";
 import { HealthBadge } from "@/components/ui/HealthBadge";
 import { OnboardingChecklistWidget } from "@/components/companies/OnboardingChecklistWidget";
 import { CompanyActivityTimeline } from "@/components/companies/CompanyActivityTimeline";
+import { AgentCard } from "@/components/agents/AgentCard";
+import { AgentFormModal } from "@/components/agents/AgentFormModal";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { ErrorState } from "@/components/ui/ErrorState";
-import { Company, CompanyOnboardingStep, Activity } from "@/domain/types";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { Company, CompanyOnboardingStep, Activity, Agent } from "@/domain/types";
 import {
   Building2,
   Bot,
@@ -20,20 +23,13 @@ import {
   AlertCircle,
   FileText,
   Sparkles,
-  Layers,
-  ArrowRight,
+  Plus,
 } from "lucide-react";
-import Link from "next/link";
 
 interface CompanyDetailsData extends Company {
   onboarding_progress: number;
   onboarding_steps: CompanyOnboardingStep[];
   recent_activities: Activity[];
-  agents_summary: {
-    total: number;
-    in_production: number;
-    with_alerts: number;
-  };
 }
 
 export default function CompanyDetailPage({
@@ -43,9 +39,12 @@ export default function CompanyDetailPage({
 }) {
   const { id } = use(params);
   const [data, setData] = useState<CompanyDetailsData | null>(null);
+  const [agents, setAgents] = useState<Agent[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingAgents, setLoadingAgents] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"overview" | "agents" | "activity">("overview");
+  const [isAgentModalOpen, setIsAgentModalOpen] = useState(false);
 
   const fetchDetails = useCallback(async () => {
     setLoading(true);
@@ -68,9 +67,25 @@ export default function CompanyDetailPage({
     }
   }, [id]);
 
+  const fetchAgents = useCallback(async () => {
+    setLoadingAgents(true);
+    try {
+      const res = await fetch(`/api/v1/agents?company_id=${id}`);
+      if (res.ok) {
+        const json = await res.json();
+        setAgents(json.data || []);
+      }
+    } catch (err) {
+      console.error("Erro ao carregar agentes:", err);
+    } finally {
+      setLoadingAgents(false);
+    }
+  }, [id]);
+
   useEffect(() => {
     fetchDetails();
-  }, [fetchDetails]);
+    fetchAgents();
+  }, [fetchDetails, fetchAgents]);
 
   if (loading) {
     return (
@@ -197,7 +212,7 @@ export default function CompanyDetailPage({
             }`}
           >
             <Bot className="w-3.5 h-3.5" />
-            <span>Agentes de IA ({data.agents_summary?.total || 0})</span>
+            <span>Agentes de IA ({agents.length})</span>
           </button>
           <button
             onClick={() => setActiveTab("activity")}
@@ -214,9 +229,7 @@ export default function CompanyDetailPage({
         {/* Conteúdo das Abas */}
         {activeTab === "overview" && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Coluna 1 & 2: Contexto Operacional e Checklist */}
             <div className="lg:col-span-2 space-y-6">
-              {/* Card de Objetivos e Escopo */}
               <div className="rounded-xl border border-border bg-card p-5 shadow-sm space-y-4">
                 <div className="flex items-center gap-2 border-b border-border pb-3">
                   <FileText className="w-4 h-4 text-primary" />
@@ -256,7 +269,6 @@ export default function CompanyDetailPage({
                 </div>
               </div>
 
-              {/* Checklist Interativo de Onboarding */}
               <OnboardingChecklistWidget
                 companyId={data.id}
                 initialSteps={data.onboarding_steps}
@@ -264,9 +276,7 @@ export default function CompanyDetailPage({
               />
             </div>
 
-            {/* Coluna 3: Sistemas Conectados e Próxima Ação */}
             <div className="space-y-6">
-              {/* Próxima Ação */}
               {data.next_action && (
                 <div className="rounded-xl border border-border bg-card p-5 shadow-sm space-y-2">
                   <div className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase font-mono">
@@ -279,7 +289,6 @@ export default function CompanyDetailPage({
                 </div>
               )}
 
-              {/* Sistemas Conectados */}
               <div className="rounded-xl border border-border bg-card p-5 shadow-sm space-y-3">
                 <div className="flex items-center gap-2 border-b border-border pb-3">
                   <Share2 className="w-4 h-4 text-primary" />
@@ -303,30 +312,52 @@ export default function CompanyDetailPage({
                 )}
               </div>
 
-              {/* Atividades Recentes (Compacto) */}
               <CompanyActivityTimeline activities={data.recent_activities} />
             </div>
           </div>
         )}
 
+        {/* Aba de Agentes: Operação Real e Viva na Fase 2 */}
         {activeTab === "agents" && (
-          <div className="rounded-xl border border-border bg-card p-8 text-center space-y-3 shadow-sm">
-            <div className="w-12 h-12 rounded-full bg-blue-50 dark:bg-blue-950 flex items-center justify-center text-primary mx-auto">
-              <Bot className="w-6 h-6" />
-            </div>
-            <h3 className="text-base font-bold text-foreground">Módulo de Agentes de IA (Fase 2)</h3>
-            <p className="text-xs text-muted-foreground max-w-md mx-auto leading-relaxed">
-              O modelo de dados e isolamento da empresa está pronto. Os agentes piloto (Gestor de Tráfego, SDR de Resposta Imediata e Split de Leads) serão conectados na Fase 2 com lifecycle, telemetria de execuções e tarefas vinculadas.
-            </p>
-            <div className="pt-2">
-              <Link
-                href="/companies"
-                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary-hover shadow-sm"
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-base font-bold text-foreground">Agentes de IA da Empresa</h2>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Agentes operacionais, automações assistidas e componentes transversais.
+                </p>
+              </div>
+
+              <button
+                onClick={() => setIsAgentModalOpen(true)}
+                className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg bg-primary text-primary-foreground text-xs font-semibold hover:bg-primary-hover shadow-sm"
               >
-                <span>Voltar para Empresas</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </Link>
+                <Plus className="w-4 h-4" />
+                <span>Novo Agente</span>
+              </button>
             </div>
+
+            {loadingAgents ? (
+              <LoadingState message="Carregando agentes de IA..." />
+            ) : agents.length === 0 ? (
+              <EmptyState
+                title="Nenhum agente cadastrado para esta empresa"
+                description="Desenhe o primeiro agente operacional para iniciar a automação dos processos comerciais da empresa."
+                icon={Bot}
+                actionLabel="Criar Primeiro Agente"
+                onAction={() => setIsAgentModalOpen(true)}
+              />
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                {agents.map((agent) => (
+                  <AgentCard
+                    key={agent.id}
+                    agent={agent}
+                    companyId={data.id}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         )}
 
@@ -336,6 +367,13 @@ export default function CompanyDetailPage({
           </div>
         )}
       </div>
+
+      <AgentFormModal
+        companyId={data.id}
+        isOpen={isAgentModalOpen}
+        onClose={() => setIsAgentModalOpen(false)}
+        onSuccess={fetchAgents}
+      />
     </AppShell>
   );
 }

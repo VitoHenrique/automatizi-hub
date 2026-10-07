@@ -200,7 +200,138 @@ export const ActivitySchema = z.object({
 export type Activity = z.infer<typeof ActivitySchema>;
 
 // ============================================================================
-// 4. CONTRATOS DE API PADRÃO (/api/v1)
+// 5. SCHEMAS DE AGENTES DE IA E TAREFAS (FASE 2)
+// ============================================================================
+
+export const AgentSchema = z.object({
+  id: z.string().uuid(),
+  organization_id: z.string().uuid(),
+  company_id: z.string().uuid(),
+  name: z.string().min(2, "Nome do agente deve ter ao menos 2 caracteres"),
+  slug: z.string().min(2).regex(/^[a-z0-9-]+$/, "Slug deve conter apenas letras minúsculas, números e hífens"),
+  kind: z.enum(["agent", "foundation", "transversal"]).default("agent"),
+  role_description: z.string().min(5, "Informe a missão do agente"),
+  problem_solved: z.string().nullable().optional(),
+  lifecycle_status: AgentLifecycleStatusSchema.default("planejamento"),
+  health: OperationalHealthSchema.default("sem_dados"),
+  health_score: z.number().int().min(0).max(100).default(100),
+  health_reasons: z.array(z.string()).default([]),
+  current_version: z.string().default("1.0.0"),
+  owner_id: z.string().uuid().nullable().optional(),
+  owner_name: z.string().nullable().optional(),
+  flow_summary: z.string().nullable().optional(),
+  inputs_definition: z.array(z.record(z.unknown())).default([]),
+  decisions_definition: z.array(z.record(z.unknown())).default([]),
+  actions_definition: z.array(z.record(z.unknown())).default([]),
+  outputs_definition: z.array(z.record(z.unknown())).default([]),
+  accessed_systems: z.array(z.string()).default([]),
+  operational_limits: z.string().nullable().optional(),
+  human_intervention_rules: z.string().nullable().optional(),
+  key_indicators: z.array(z.record(z.unknown())).default([]),
+  risks: z.string().nullable().optional(),
+  is_demo: z.boolean().default(false),
+  archived_at: z.string().datetime().nullable().optional(),
+  created_at: z.string().datetime(),
+  updated_at: z.string().datetime(),
+});
+export type Agent = z.infer<typeof AgentSchema>;
+
+export const CreateAgentSchema = z.object({
+  company_id: z.string().uuid(),
+  name: z.string().min(2, "Nome do agente deve ter ao menos 2 caracteres"),
+  slug: z.string().min(2).regex(/^[a-z0-9-]+$/, "Slug deve conter apenas letras minúsculas, números e hífens"),
+  role_description: z.string().min(5, "Informe a missão do agente"),
+  problem_solved: z.string().optional(),
+  kind: z.enum(["agent", "foundation", "transversal"]).default("agent"),
+  accessed_systems: z.array(z.string()).default([]),
+  flow_summary: z.string().optional(),
+  operational_limits: z.string().optional(),
+  human_intervention_rules: z.string().optional(),
+  risks: z.string().optional(),
+  is_demo: z.boolean().default(false),
+});
+export type CreateAgentInput = z.infer<typeof CreateAgentSchema>;
+
+export const UpdateAgentSchema = CreateAgentSchema.partial().extend({
+  lifecycle_status: AgentLifecycleStatusSchema.optional(),
+  health: OperationalHealthSchema.optional(),
+  health_score: z.number().int().min(0).max(100).optional(),
+  current_version: z.string().optional(),
+  owner_name: z.string().optional(),
+});
+export type UpdateAgentInput = z.infer<typeof UpdateAgentSchema>;
+
+export const PromoteAgentSchema = z.object({
+  version: z.string().regex(/^\d+\.\d+\.\d+$/, "A versão deve seguir o formato semântico (ex: 1.0.0)"),
+  change_summary: z.string().min(5, "Descreva as mudanças desta versão"),
+  readiness_checklist: z.object({
+    has_documentation: z.boolean(),
+    has_validated_integrations: z.boolean(),
+    has_passed_tests: z.boolean(),
+    has_designated_owner: z.boolean(),
+    has_rollback_plan: z.boolean(),
+    has_formal_approval: z.boolean(),
+  }),
+});
+export type PromoteAgentInput = z.infer<typeof PromoteAgentSchema>;
+
+export const AgentVersionSchema = z.object({
+  id: z.string().uuid(),
+  organization_id: z.string().uuid(),
+  agent_id: z.string().uuid(),
+  version: z.string(),
+  change_summary: z.string(),
+  config_snapshot: z.record(z.unknown()),
+  is_production: z.boolean().default(false),
+  promoted_at: z.string().datetime().nullable().optional(),
+  promoted_by: z.string().uuid().nullable().optional(),
+  created_at: z.string().datetime(),
+});
+export type AgentVersion = z.infer<typeof AgentVersionSchema>;
+
+export const TaskKindSchema = z.enum(["task", "milestone", "blocker", "decision"]);
+export type TaskKind = z.infer<typeof TaskKindSchema>;
+
+export const TaskStatusSchema = z.enum(["todo", "in_progress", "done", "blocked"]);
+export type TaskStatus = z.infer<typeof TaskStatusSchema>;
+
+export const TaskPrioritySchema = z.enum(["low", "medium", "high", "urgent"]);
+export type TaskPriority = z.infer<typeof TaskPrioritySchema>;
+
+export const TaskSchema = z.object({
+  id: z.string().uuid(),
+  organization_id: z.string().uuid(),
+  company_id: z.string().uuid(),
+  agent_id: z.string().uuid().nullable().optional(),
+  title: z.string().min(2, "Título deve ter no mínimo 2 caracteres"),
+  description: z.string().nullable().optional(),
+  kind: TaskKindSchema.default("task"),
+  status: TaskStatusSchema.default("todo"),
+  priority: TaskPrioritySchema.default("medium"),
+  assignee_id: z.string().uuid().nullable().optional(),
+  assignee_name: z.string().nullable().optional(),
+  due_date: z.string().nullable().optional(),
+  completed_at: z.string().datetime().nullable().optional(),
+  created_at: z.string().datetime(),
+  updated_at: z.string().datetime(),
+});
+export type Task = z.infer<typeof TaskSchema>;
+
+export const CreateTaskSchema = z.object({
+  company_id: z.string().uuid(),
+  agent_id: z.string().uuid().optional(),
+  title: z.string().min(2, "Título da tarefa é obrigatório"),
+  description: z.string().optional(),
+  kind: TaskKindSchema.default("task"),
+  status: TaskStatusSchema.default("todo"),
+  priority: TaskPrioritySchema.default("medium"),
+  assignee_name: z.string().optional(),
+  due_date: z.string().optional(),
+});
+export type CreateTaskInput = z.infer<typeof CreateTaskSchema>;
+
+// ============================================================================
+// 6. CONTRATOS DE API PADRÃO (/api/v1)
 // ============================================================================
 
 export interface ApiResponseMeta {
