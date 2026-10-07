@@ -216,3 +216,6 @@ export const companyRepository = {
     ];
   },
 };
+
+export const companiesRepository = companyRepository;
+

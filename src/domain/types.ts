@@ -593,3 +593,129 @@ export interface ApiResponse<T> {
   meta: ApiResponseMeta;
   error: ApiResponseError | null;
 }
+
+// ============================================================================
+// 9. PILOTO DBX, LEADS, WEBHOOKS E ADAPTADORES (FASE 5)
+// ============================================================================
+
+export const LeadStatusSchema = z.enum([
+  "captado",
+  "contatado",
+  "qualificado",
+  "reuniao_agendada",
+  "distribuido",
+  "desqualificado",
+  "perdido",
+]);
+export type LeadStatus = z.infer<typeof LeadStatusSchema>;
+
+export const LeadSchema = z.object({
+  id: z.string().uuid(),
+  organization_id: z.string().uuid(),
+  company_id: z.string().uuid(),
+  external_lead_id: z.string().nullable().optional(),
+  full_name: z.string().min(2, "Nome do lead deve ter no mínimo 2 caracteres"),
+  email: z.string().email("E-mail inválido").nullable().optional().or(z.literal("")),
+  phone: z.string().min(8, "Telefone deve conter no mínimo 8 dígitos"),
+  source: z.string().default("meta_ads"),
+  campaign_name: z.string().nullable().optional(),
+  status: LeadStatusSchema.default("captado"),
+  qualification_score: z.number().int().min(0).max(10).nullable().optional(),
+  qualification_notes: z.string().nullable().optional(),
+  assigned_closer_id: z.string().nullable().optional(),
+  assigned_closer_name: z.string().nullable().optional(),
+  scheduled_meeting_at: z.string().datetime().nullable().optional(),
+  first_contact_response_time_seconds: z.number().int().nullable().optional(),
+  meta_event_id: z.string().nullable().optional(),
+  payload_raw: z.record(z.unknown()).default({}),
+  created_at: z.string().datetime(),
+  updated_at: z.string().datetime(),
+});
+export type Lead = z.infer<typeof LeadSchema>;
+
+export const CreateLeadSchema = z.object({
+  company_id: z.string().uuid(),
+  external_lead_id: z.string().optional(),
+  full_name: z.string().min(2, "Nome do lead deve ter no mínimo 2 caracteres"),
+  email: z.string().email().optional().or(z.literal("")),
+  phone: z.string().min(8, "Telefone é obrigatório"),
+  source: z.string().default("meta_ads"),
+  campaign_name: z.string().optional(),
+  qualification_score: z.number().int().min(0).max(10).optional(),
+  qualification_notes: z.string().optional(),
+  payload_raw: z.record(z.unknown()).optional(),
+});
+export type CreateLeadInput = z.infer<typeof CreateLeadSchema>;
+
+export const UpdateLeadSchema = CreateLeadSchema.partial().extend({
+  status: LeadStatusSchema.optional(),
+  assigned_closer_id: z.string().optional(),
+  assigned_closer_name: z.string().optional(),
+  scheduled_meeting_at: z.string().datetime().optional(),
+  first_contact_response_time_seconds: z.number().int().optional(),
+});
+export type UpdateLeadInput = z.infer<typeof UpdateLeadSchema>;
+
+export const WebhookEventStatusSchema = z.enum(["received", "processed", "duplicate", "failed"]);
+export type WebhookEventStatus = z.infer<typeof WebhookEventStatusSchema>;
+
+export const WebhookEventSchema = z.object({
+  id: z.string().uuid(),
+  organization_id: z.string().uuid(),
+  provider: IntegrationProviderSchema,
+  event_id: z.string(),
+  signature: z.string().nullable().optional(),
+  status: WebhookEventStatusSchema.default("received"),
+  payload: z.record(z.unknown()),
+  processed_at: z.string().datetime().nullable().optional(),
+  error_message: z.string().nullable().optional(),
+  created_at: z.string().datetime(),
+});
+export type WebhookEvent = z.infer<typeof WebhookEventSchema>;
+
+export const CloserSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  email: z.string().email(),
+  phone: z.string(),
+  seniority: z.enum(["junior", "pleno", "senior"]),
+  tier_specialty: z.enum(["standard", "enterprise", "all"]).default("all"),
+  max_daily_leads: z.number().int().default(8),
+  current_leads_today: z.number().int().default(0),
+  active: z.boolean().default(true),
+});
+export type Closer = z.infer<typeof CloserSchema>;
+
+export interface SplitAssignmentResult {
+  lead_id: string;
+  closer_id: string;
+  closer_name: string;
+  rule_applied: string;
+  previous_status: LeadStatus;
+  new_status: LeadStatus;
+}
+
+export interface AdapterHealthResult {
+  is_healthy: boolean;
+  latency_ms: number;
+  last_sync_at: string;
+  error_details?: string | null;
+  details?: Record<string, unknown>;
+}
+
+export interface MetaAdsCampaignMetric {
+  campaign_id: string;
+  campaign_name: string;
+  status: "ACTIVE" | "PAUSED";
+  daily_budget: number;
+  spend: number;
+  impressions: number;
+  clicks: number;
+  leads_count: number;
+  cpl: number;
+  target_cpl: number;
+  roas: number;
+  ctr: number;
+  recommendation: "scale" | "maintain" | "pause";
+}
+

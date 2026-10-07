@@ -125,6 +125,24 @@ O repositório GitHub antigo e o projeto Supabase antigo foram deletados. O Auto
 - Impacto: Comunicação orquestrada, auditada, protegida contra repetição acidental e completamente desacoplada do cliente frontend.
 - Responsável: Antigravity / Vito
 
+## DEC-015 — Adaptadores Isolados, Deduplicação Idempotente de Webhooks e Pipeline do Piloto DBX Global
+- Data: 2026-10-07
+- Status: adotada
+- Contexto: A Fase 5 (DBX) requer a validação operacional dos primeiros agentes de IA da empresa piloto DBX Global (Gestor de Tráfego, SDR de Resposta Imediata e Split de Leads) conectados a sistemas externos homologados (Meta Ads, WhatsApp Cloud API, Google Calendar e CRM DBX), preservando o desacoplamento arquitetural (PRODUCT.md: "DBX Global é apenas o primeiro caso de uso; nenhuma regra estrutural deve ficar acoplada a ela").
+- Decisão:
+  1. Criação da tabela genérica 'leads' e da tabela 'webhook_events' com índice único '(organization_id, provider, event_id)' e isolamento RLS multi-tenant por 'organization_id' (migration 20261007170000_fase5_dbx.sql).
+  2. Implementação de 4 adaptadores modulares isolados sob o contrato 'IntegrationAdapter':
+     - 'MetaAdsAdapter': validação de handshake 'hub.challenge', verificação de assinatura HMAC SHA-256, extração de leads e telemetria de campanhas com recomendações de escala/pausa.
+     - 'WhatsAppCloudAdapter': disparo de template comercial com SLA < 60s, normalização internacional E.164, qualificação BANT e transbordo humano auditado.
+     - 'GoogleCalendarAdapter': consulta de horários disponíveis e agendamento automático de demonstrações com Google Meet.
+     - 'DbxCrmAdapter': algoritmo de split round-robin ponderado direcionando leads Enterprise a closers Senior, balanceamento de carga para Standard e limite diário rígido de 8 leads/dia por closer.
+  3. Orquestração via 'DbxPilotService': pipeline unificado que conecta o webhook bruto à criação do lead, disparo do SDR WhatsApp, agendamento de reunião, distribuição no CRM e retroalimentação das métricas de tráfego, gravando execuções auditadas em 'agent_executions' e atividades na timeline da empresa.
+  4. Interface do Piloto DBX: visão de funil kanban ('LeadsPipeline'), tabela de controle com reatribuição manual de closer e modal de simulação de leads em tempo real ('SimulateLeadModal').
+- Alternativas: Tratar leads como simples descrições em tarefas sem entidade formal ou codificar regras de negócio fixas no frontend.
+- Motivo: Atende aos critérios de aceitação da Fase 5 e garante robustez operacional B2B para o cliente piloto e futuros tenants.
+- Impacto: Operação comercial automatizada ponta a ponta com supervisão humana, auditoria completa de telemetria e garantia de SLA.
+- Responsável: Antigravity / Vito
+
 ## Template para novas decisões
 ### DEC-XXX — Título
 - Data:
@@ -135,6 +153,7 @@ O repositório GitHub antigo e o projeto Supabase antigo foram deletados. O Auto
 - Motivo:
 - Impacto:
 - Responsável:
+
 
 
 

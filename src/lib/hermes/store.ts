@@ -188,6 +188,21 @@ export const hermesRepository = {
     return newIntegration;
   },
 
+  updateIntegrationStatus(
+    id: string,
+    orgId: string,
+    status: "connected" | "disconnected" | "error",
+    errorDetails?: string | null
+  ): Integration | null {
+    const item = integrationsStore.find((i) => i.id === id && i.organization_id === orgId);
+    if (!item) return null;
+    item.status = status;
+    item.last_sync_at = new Date().toISOString();
+    item.error_details = errorDetails || null;
+    item.updated_at = new Date().toISOString();
+    return item;
+  },
+
   // Circuit Breaker
   getCircuitBreakerStatus() {
     return { ...circuitBreakerState };

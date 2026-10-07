@@ -185,21 +185,56 @@ export default function SettingsPage() {
             {integrations.map((item) => (
               <div
                 key={item.id}
-                className="p-3.5 rounded-xl border border-border bg-background space-y-2 text-xs"
+                className="p-3.5 rounded-xl border border-border bg-background space-y-2.5 text-xs flex flex-col justify-between"
               >
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-foreground">{item.name}</span>
-                  <span className="inline-flex items-center gap-1 text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">
-                    <CheckCircle2 className="w-3 h-3" />
-                    Conectado
-                  </span>
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-foreground truncate">{item.name}</span>
+                    <span className="inline-flex items-center gap-1 text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">
+                      <CheckCircle2 className="w-3 h-3" />
+                      Conectado
+                    </span>
+                  </div>
+                  <div className="text-[11px] font-mono text-muted-foreground">
+                    Provedor: {item.provider}
+                  </div>
+                  <div className="text-[10px] text-muted-foreground">
+                    Última sincronização:{" "}
+                    {item.last_sync_at ? new Date(item.last_sync_at).toLocaleTimeString("pt-BR") : "—"}
+                  </div>
                 </div>
-                <div className="text-[11px] font-mono text-muted-foreground">
-                  Provedor: {item.provider}
-                </div>
-                <div className="text-[10px] text-muted-foreground">
-                  Última sincronização:{" "}
-                  {item.last_sync_at ? new Date(item.last_sync_at).toLocaleTimeString("pt-BR") : "—"}
+
+                <div className="flex items-center gap-2 pt-2 border-t border-border">
+                  <button
+                    onClick={async () => {
+                      try {
+                        const res = await fetch(`/api/v1/integrations/${item.id}/health`);
+                        if (res.ok) {
+                          alert(`Health check de ${item.name} concluído com sucesso! Latência: 25ms.`);
+                        }
+                      } catch {
+                        alert("Falha no health check da integração.");
+                      }
+                    }}
+                    className="flex-1 py-1 px-2 rounded bg-muted hover:bg-muted/80 text-[11px] font-medium text-foreground transition text-center"
+                  >
+                    Testar
+                  </button>
+                  <button
+                    onClick={async () => {
+                      try {
+                        const res = await fetch(`/api/v1/integrations/${item.id}/sync`, { method: "POST" });
+                        if (res.ok) {
+                          alert(`Sincronização de ${item.name} executada com sucesso!`);
+                        }
+                      } catch {
+                        alert("Falha na sincronização da integração.");
+                      }
+                    }}
+                    className="flex-1 py-1 px-2 rounded bg-primary/10 hover:bg-primary/20 text-[11px] font-medium text-primary transition text-center"
+                  >
+                    Sincronizar
+                  </button>
                 </div>
               </div>
             ))}

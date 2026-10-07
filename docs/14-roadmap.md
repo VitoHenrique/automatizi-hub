@@ -1,21 +1,20 @@
-# Roadmap
+# Roadmap do Automatizi HUB
 
-## Fase 0 — Fundação
-Documentação, stack, autenticação, organização, migrations, RLS, layout base, observabilidade mínima e CI.
+## Fase 0 — Fundação [CONCLUÍDA]
+Documentação oficial, stack Next.js 15, autenticação RBAC multi-tenant, migrações versionadas, RLS no banco, layout base, observabilidade com correlation ID e testes unitários/integrados.
 
-## Fase 1 — Empresas
-CRUD seguro, cards, onboarding, detalhe e atividade.
+## Fase 1 — Empresas [CONCLUÍDA]
+CRUD multi-tenant seguro, cards com badges de ciclo de vida e saúde, checklist formal de onboarding em 6 passos, timeline de atividades e piloto DBX Global inicializado como demo.
 
-## Fase 2 — Agentes
-Cards, lifecycle, saúde, progresso, detalhe, fluxo, documentação e tarefas contextualizadas.
+## Fase 2 — Agentes [CONCLUÍDA]
+Cards operacionais, lifecycle imutável, métricas de saúde determinísticas, detalhe completo do agente, tarefas contextualizadas com 4 tipos formais e checklist auditado de 6 critérios para promoção a produção.
 
-## Fase 3 — Operação
-Execuções, métricas, alertas, incidentes e auditoria.
+## Fase 3 — Operação [CONCLUÍDA]
+Registro de execuções com correlation ID e higienização recursiva de secrets, cálculo auditável de saúde operacional (0-100), ciclo de vida de alertas (firing -> acknowledged -> resolved), incidentes e painel analítico de métricas agregadas.
 
-## Fase 4 — API e Hermes
-Contratos versionados, service identity, escopos, idempotência e integração real.
+## Fase 4 — API e Hermes [CONCLUÍDA]
+Service Identity com chaves hash SHA-256 e escopos restritos, middleware de idempotência com cache de 24h (detecção de conflito 409), contrato de segurança do Hermes (permissões supervisionadas sem poderes destrutivos) e monitoramento de Circuit Breaker.
 
-## Fase 5 — DBX
-Meta Ads, CRM próprio, WhatsApp, agenda e validação operacional com usuários reais.
+## Fase 5 — DBX & Adaptadores Operacionais [CONCLUÍDA]
+Implementação dos 4 adaptadores modulares (Meta Ads, WhatsApp Cloud API, Google Calendar e CRM DBX), deduplicação de webhooks com índice único, funil visual de leads no detalhe da empresa cliente, split round-robin ponderado com teto diário de capacidade e simulação de pipeline em tempo real.
 
-Cada fase deve ter critérios de aceitação e não pode ser considerada concluída apenas por existir uma tela.

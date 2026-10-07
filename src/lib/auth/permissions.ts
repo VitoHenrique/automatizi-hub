@@ -23,7 +23,9 @@ export type PermissionAction =
   | "alert:view"
   | "audit:view"
   | "integration:configure"
-  | "integration:view";
+  | "integration:view"
+  | "lead:view"
+  | "lead:manage";
 
 /**
  * Matriz estrita de permissões por papel.
@@ -54,6 +56,8 @@ const ROLE_PERMISSIONS: Record<MembershipRole, Set<PermissionAction>> = {
     "audit:view",
     "integration:configure",
     "integration:view",
+    "lead:view",
+    "lead:manage",
   ]),
   admin: new Set([
     "membership:manage",
@@ -78,6 +82,8 @@ const ROLE_PERMISSIONS: Record<MembershipRole, Set<PermissionAction>> = {
     "audit:view",
     "integration:configure",
     "integration:view",
+    "lead:view",
+    "lead:manage",
   ]),
   operator: new Set([
     "membership:view",
@@ -95,6 +101,8 @@ const ROLE_PERMISSIONS: Record<MembershipRole, Set<PermissionAction>> = {
     "alert:view",
     "audit:view",
     "integration:view",
+    "lead:view",
+    "lead:manage",
   ]),
   analyst: new Set([
     "membership:view",
@@ -106,6 +114,7 @@ const ROLE_PERMISSIONS: Record<MembershipRole, Set<PermissionAction>> = {
     "alert:view",
     "audit:view",
     "integration:view",
+    "lead:view",
   ]),
   client_viewer: new Set([
     "company:view",
@@ -113,6 +122,7 @@ const ROLE_PERMISSIONS: Record<MembershipRole, Set<PermissionAction>> = {
     "task:view",
     "metric:view",
     "alert:view",
+    "lead:view",
   ]),
   service_agent: new Set([
     "company:view",
@@ -126,6 +136,8 @@ const ROLE_PERMISSIONS: Record<MembershipRole, Set<PermissionAction>> = {
     "alert:manage",
     "alert:view",
     "integration:view",
+    "lead:view",
+    "lead:manage",
   ]),
 };
 

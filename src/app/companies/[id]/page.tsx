@@ -11,7 +11,10 @@ import { AgentFormModal } from "@/components/agents/AgentFormModal";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { Company, CompanyOnboardingStep, Activity, Agent } from "@/domain/types";
+import { Company, CompanyOnboardingStep, Activity, Agent, Lead } from "@/domain/types";
+import { LeadsPipeline } from "@/components/leads/LeadsPipeline";
+import { LeadsTable } from "@/components/leads/LeadsTable";
+import { SimulateLeadModal } from "@/components/leads/SimulateLeadModal";
 import {
   Building2,
   Bot,
@@ -24,6 +27,8 @@ import {
   FileText,
   Sparkles,
   Plus,
+  Workflow,
+  Send,
 } from "lucide-react";
 
 interface CompanyDetailsData extends Company {
@@ -40,11 +45,14 @@ export default function CompanyDetailPage({
   const { id } = use(params);
   const [data, setData] = useState<CompanyDetailsData | null>(null);
   const [agents, setAgents] = useState<Agent[]>([]);
+  const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingAgents, setLoadingAgents] = useState(false);
+  const [loadingLeads, setLoadingLeads] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"overview" | "agents" | "activity">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "agents" | "leads" | "activity">("overview");
   const [isAgentModalOpen, setIsAgentModalOpen] = useState(false);
+  const [isSimulateModalOpen, setIsSimulateModalOpen] = useState(false);
 
   const fetchDetails = useCallback(async () => {
     setLoading(true);
@@ -82,10 +90,39 @@ export default function CompanyDetailPage({
     }
   }, [id]);
 
+  const fetchLeads = useCallback(async () => {
+    setLoadingLeads(true);
+    try {
+      const res = await fetch(`/api/v1/companies/${id}/leads`);
+      if (res.ok) {
+        const json = await res.json();
+        setLeads(json.data || []);
+      }
+    } catch (err) {
+      console.error("Erro ao carregar leads:", err);
+    } finally {
+      setLoadingLeads(false);
+    }
+  }, [id]);
+
+  const handleSplitLead = async (lead: Lead) => {
+    try {
+      const res = await fetch(`/api/v1/companies/${id}/leads/${lead.id}/split`, {
+        method: "POST",
+      });
+      if (res.ok) {
+        await fetchLeads();
+      }
+    } catch (err) {
+      console.error("Erro ao distribuir lead:", err);
+    }
+  };
+
   useEffect(() => {
     fetchDetails();
     fetchAgents();
-  }, [fetchDetails, fetchAgents]);
+    fetchLeads();
+  }, [fetchDetails, fetchAgents, fetchLeads]);
 
   if (loading) {
     return (
@@ -213,6 +250,17 @@ export default function CompanyDetailPage({
           >
             <Bot className="w-3.5 h-3.5" />
             <span>Agentes de IA ({agents.length})</span>
+          </button>
+          <button
+            onClick={() => setActiveTab("leads")}
+            className={`px-4 py-2.5 text-xs font-semibold border-b-2 transition-all flex items-center gap-1.5 ${
+              activeTab === "leads"
+                ? "border-primary text-primary"
+                : "border-transparent text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <Workflow className="w-3.5 h-3.5" />
+            <span>Pipeline de Leads ({leads.length})</span>
           </button>
           <button
             onClick={() => setActiveTab("activity")}
@@ -361,6 +409,59 @@ export default function CompanyDetailPage({
           </div>
         )}
 
+        {/* Aba de Leads: Operação Real do Piloto DBX (Fase 5) */}
+        {activeTab === "leads" && (
+          <div className="space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h2 className="text-base font-bold text-foreground">Pipeline de Leads & Operação Piloto</h2>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Fluxo automatizado: Webhook Meta Ads → SDR WhatsApp (&lt; 60s) → Qualificação BANT → Split CRM.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setIsSimulateModalOpen(true)}
+                  className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-sm transition"
+                >
+                  <Send className="w-3.5 h-3.5" />
+                  <span>Simular Lead (Meta Ads)</span>
+                </button>
+              </div>
+            </div>
+
+            {loadingLeads ? (
+              <LoadingState message="Carregando leads da operação..." />
+            ) : leads.length === 0 ? (
+              <EmptyState
+                title="Nenhum lead recebido ainda"
+                description="Dispare um webhook de teste ou aguarde novas conversões de anúncios para visualizar a qualificação e distribuição em tempo real."
+                icon={Workflow}
+                actionLabel="Simular Primeiro Lead"
+                onAction={() => setIsSimulateModalOpen(true)}
+              />
+            ) : (
+              <div className="space-y-6">
+                <LeadsPipeline
+                  leads={leads}
+                  onSplitLead={handleSplitLead}
+                />
+
+                <div className="pt-4 border-t border-border">
+                  <h3 className="text-sm font-bold text-foreground mb-3">Visão Tabular & Distribuição</h3>
+                  <LeadsTable
+                    leads={leads}
+                    onSplitLead={handleSplitLead}
+                    onRefresh={fetchLeads}
+                    isLoading={loadingLeads}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         {activeTab === "activity" && (
           <div className="max-w-3xl">
             <CompanyActivityTimeline activities={data.recent_activities} />
@@ -373,6 +474,13 @@ export default function CompanyDetailPage({
         isOpen={isAgentModalOpen}
         onClose={() => setIsAgentModalOpen(false)}
         onSuccess={fetchAgents}
+      />
+
+      <SimulateLeadModal
+        companyId={data.id}
+        isOpen={isSimulateModalOpen}
+        onClose={() => setIsSimulateModalOpen(false)}
+        onSuccess={fetchLeads}
       />
     </AppShell>
   );
