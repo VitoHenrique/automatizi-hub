@@ -7,9 +7,11 @@ import { HealthBadge } from "@/components/ui/HealthBadge";
 import { AgentFlowDiagram } from "@/components/agents/AgentFlowDiagram";
 import { AgentTasksList } from "@/components/agents/AgentTasksList";
 import { AgentPromotionModal } from "@/components/agents/AgentPromotionModal";
+import { ExecutionsList } from "@/components/operations/ExecutionsList";
+import { MetricsOverview } from "@/components/operations/MetricsOverview";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { ErrorState } from "@/components/ui/ErrorState";
-import { Agent, AgentVersion, Task } from "@/domain/types";
+import { Agent, AgentVersion, Task, AgentExecution, OperationalMetricsSummary } from "@/domain/types";
 import {
   Bot,
   Rocket,
@@ -21,6 +23,8 @@ import {
   Sparkles,
   Layers,
   CheckCircle2,
+  Activity,
+  Play,
 } from "lucide-react";
 
 interface AgentDetailsData extends Agent {
@@ -36,21 +40,39 @@ export default function AgentDetailPage({
 }) {
   const { id: companyId, agentId } = use(params);
   const [agent, setAgent] = useState<AgentDetailsData | null>(null);
+  const [executions, setExecutions] = useState<AgentExecution[]>([]);
+  const [metrics, setMetrics] = useState<OperationalMetricsSummary | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isTriggering, setIsTriggering] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"flow" | "tasks" | "versions">("flow");
+  const [activeTab, setActiveTab] = useState<"flow" | "tasks" | "versions" | "executions">("flow");
   const [isPromoteModalOpen, setIsPromoteModalOpen] = useState(false);
 
   const fetchAgent = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/v1/agents/${agentId}`);
-      if (!res.ok) {
+      const [agentRes, execsRes, metricsRes] = await Promise.all([
+        fetch(`/api/v1/agents/${agentId}`),
+        fetch(`/api/v1/executions?agent_id=${agentId}`),
+        fetch(`/api/v1/metrics?agent_id=${agentId}`),
+      ]);
+
+      if (!agentRes.ok) {
         throw new Error("Não foi possível carregar os detalhes do agente.");
       }
-      const json = await res.json();
-      setAgent(json.data);
+      const agentJson = await agentRes.json();
+      setAgent(agentJson.data);
+
+      if (execsRes.ok) {
+        const execsJson = await execsRes.json();
+        setExecutions(execsJson.data || []);
+      }
+
+      if (metricsRes.ok) {
+        const metricsJson = await metricsRes.json();
+        setMetrics(metricsJson.data || null);
+      }
     } catch (err: unknown) {
       if (err instanceof Error) {
         setError(err.message);
@@ -61,6 +83,31 @@ export default function AgentDetailPage({
       setLoading(false);
     }
   }, [agentId]);
+
+  const handleTriggerExecution = async () => {
+    if (!agent) return;
+    setIsTriggering(true);
+    try {
+      const res = await fetch("/api/v1/executions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          company_id: agent.company_id,
+          agent_id: agent.id,
+          status: "success",
+          input_summary: "Disparo manual supervisionado via painel do operador.",
+          output_summary: "Execução processada com sucesso; parâmetros validados.",
+          duration_ms: Math.floor(Math.random() * 800) + 300,
+          cost_cents: 6,
+        }),
+      });
+      if (res.ok) {
+        await fetchAgent();
+      }
+    } finally {
+      setIsTriggering(false);
+    }
+  };
 
   useEffect(() => {
     fetchAgent();
@@ -211,6 +258,17 @@ export default function AgentDetailPage({
             <History className="w-3.5 h-3.5" />
             <span>Versões Promovidas ({agent.versions?.length || 0})</span>
           </button>
+          <button
+            onClick={() => setActiveTab("executions")}
+            className={`px-4 py-2.5 text-xs font-semibold border-b-2 transition-all flex items-center gap-1.5 ${
+              activeTab === "executions"
+                ? "border-primary text-primary"
+                : "border-transparent text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <Activity className="w-3.5 h-3.5" />
+            <span>Operação & Execuções ({executions.length})</span>
+          </button>
         </div>
 
         {/* Conteúdo das Abas */}
@@ -251,6 +309,17 @@ export default function AgentDetailPage({
                 </div>
               ))}
             </div>
+          </div>
+        )}
+
+        {activeTab === "executions" && (
+          <div className="space-y-6">
+            {metrics && <MetricsOverview metrics={metrics} />}
+            <ExecutionsList
+              executions={executions}
+              onTriggerExecution={handleTriggerExecution}
+              isTriggering={isTriggering}
+            />
           </div>
         )}
       </div>

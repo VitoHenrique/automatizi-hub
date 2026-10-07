@@ -96,6 +96,21 @@ O repositório GitHub antigo e o projeto Supabase antigo foram deletados. O Auto
 - Impacto: Impossível colocar um agente em produção de forma arbitrária; todo rollout gera auditoria, snapshot de versão e registro de atividade legível.
 - Responsável: Antigravity / Vito
 
+## DEC-013 — Operabilidade de Agentes: Execuções com Telemetria, Gestão de Alertas e Cálculo Determinístico de Saúde
+- Data: 2026-10-07
+- Status: adotada
+- Contexto: A Fase 3 (Operação) exige supervisão contínua das automações através de execuções rastreáveis, cálculo auditável de saúde operacional (docs/10-observability.md) e controle formal de alertas e incidentes operacionais.
+- Decisão:
+  1. Criação das tabelas 'agent_executions', 'alerts' e 'incidents' com isolamento multi-tenant por 'organization_id' e políticas RLS no PostgreSQL.
+  2. Execuções com correlation ID, timestamps precisos, duration em ms, custo operacional, inputs/outputs e sanitização obrigatória contra vazamento de tokens e bearer tokens.
+  3. Cálculo determinístico de 'health_score' (0-100) e status ('saudavel', 'atencao', 'critico', 'sem_dados') com justificativas legíveis baseadas em taxa de sucesso, latência média e alertas críticos ativos.
+  4. Ciclo de vida de alertas com transição formal entre firing -> acknowledged -> resolved com auditoria de quem reconheceu e quando foi mitigado.
+  5. Agregações e métricas analíticas expostas em '/api/v1/metrics' alimentando o painel de operações e a aba operacional do agente.
+- Alternativas: Logs não estruturados em arquivos soltos sem agregação em banco ou status de saúde baseado em opiniões subjetivas.
+- Motivo: Atende aos requisitos de confiabilidade B2B para operadores humanos e clientes finais, eliminando incertezas sobre se um agente está operando corretamente.
+- Impacto: Rastreabilidade fim-a-fim de cada ação executada pelo agente com métricas em tempo real e resposta operacional auditada a incidentes.
+- Responsável: Antigravity / Vito
+
 ## Template para novas decisões
 ### DEC-XXX — Título
 - Data:
@@ -106,4 +121,5 @@ O repositório GitHub antigo e o projeto Supabase antigo foram deletados. O Auto
 - Motivo:
 - Impacto:
 - Responsável:
+
 

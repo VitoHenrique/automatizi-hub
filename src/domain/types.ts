@@ -331,7 +331,120 @@ export const CreateTaskSchema = z.object({
 export type CreateTaskInput = z.infer<typeof CreateTaskSchema>;
 
 // ============================================================================
-// 6. CONTRATOS DE API PADRÃO (/api/v1)
+// 6. SCHEMAS DE OPERAÇÃO: EXECUÇÕES, ALERTAS E INCIDENTES (FASE 3)
+// ============================================================================
+
+export const ExecutionStatusSchema = z.enum(["running", "success", "failed", "timeout", "cancelled"]);
+export type ExecutionStatus = z.infer<typeof ExecutionStatusSchema>;
+
+export const AgentExecutionSchema = z.object({
+  id: z.string().uuid(),
+  organization_id: z.string().uuid(),
+  company_id: z.string().uuid(),
+  agent_id: z.string().uuid(),
+  agent_version: z.string(),
+  correlation_id: z.string(),
+  status: ExecutionStatusSchema.default("running"),
+  started_at: z.string().datetime(),
+  finished_at: z.string().datetime().nullable().optional(),
+  duration_ms: z.number().int().nullable().optional(),
+  cost_cents: z.number().int().default(0),
+  input_summary: z.string().nullable().optional(),
+  output_summary: z.string().nullable().optional(),
+  error_message: z.string().nullable().optional(),
+  meta: z.record(z.unknown()).default({}),
+  created_at: z.string().datetime(),
+});
+export type AgentExecution = z.infer<typeof AgentExecutionSchema>;
+
+export const CreateExecutionSchema = z.object({
+  company_id: z.string().uuid(),
+  agent_id: z.string().uuid(),
+  agent_version: z.string().optional(),
+  correlation_id: z.string().optional(),
+  status: ExecutionStatusSchema.default("success"),
+  started_at: z.string().datetime().optional(),
+  finished_at: z.string().datetime().optional(),
+  duration_ms: z.number().int().optional(),
+  cost_cents: z.number().int().default(0),
+  input_summary: z.string().optional(),
+  output_summary: z.string().optional(),
+  error_message: z.string().optional(),
+  meta: z.record(z.unknown()).default({}),
+});
+export type CreateExecutionInput = z.infer<typeof CreateExecutionSchema>;
+
+export const AlertSeveritySchema = z.enum(["info", "warning", "critical"]);
+export type AlertSeverity = z.infer<typeof AlertSeveritySchema>;
+
+export const AlertStatusSchema = z.enum(["firing", "acknowledged", "resolved"]);
+export type AlertStatus = z.infer<typeof AlertStatusSchema>;
+
+export const AlertSchema = z.object({
+  id: z.string().uuid(),
+  organization_id: z.string().uuid(),
+  company_id: z.string().uuid(),
+  agent_id: z.string().uuid().nullable().optional(),
+  execution_id: z.string().uuid().nullable().optional(),
+  incident_id: z.string().uuid().nullable().optional(),
+  severity: AlertSeveritySchema,
+  title: z.string().min(2, "Título do alerta é obrigatório"),
+  description: z.string().nullable().optional(),
+  status: AlertStatusSchema.default("firing"),
+  acknowledged_at: z.string().datetime().nullable().optional(),
+  acknowledged_by: z.string().uuid().nullable().optional(),
+  resolved_at: z.string().datetime().nullable().optional(),
+  resolved_by: z.string().uuid().nullable().optional(),
+  created_at: z.string().datetime(),
+  updated_at: z.string().datetime(),
+});
+export type Alert = z.infer<typeof AlertSchema>;
+
+export const CreateAlertSchema = z.object({
+  company_id: z.string().uuid(),
+  agent_id: z.string().uuid().optional(),
+  execution_id: z.string().uuid().optional(),
+  severity: AlertSeveritySchema,
+  title: z.string().min(2, "Título do alerta é obrigatório"),
+  description: z.string().optional(),
+});
+export type CreateAlertInput = z.infer<typeof CreateAlertSchema>;
+
+export const IncidentSeveritySchema = z.enum(["p1_critical", "p2_major", "p3_minor"]);
+export type IncidentSeverity = z.infer<typeof IncidentSeveritySchema>;
+
+export const IncidentStatusSchema = z.enum(["investigating", "identified", "monitoring", "resolved"]);
+export type IncidentStatus = z.infer<typeof IncidentStatusSchema>;
+
+export const IncidentSchema = z.object({
+  id: z.string().uuid(),
+  organization_id: z.string().uuid(),
+  company_id: z.string().uuid().nullable().optional(),
+  agent_id: z.string().uuid().nullable().optional(),
+  title: z.string().min(2, "Título do incidente é obrigatório"),
+  summary: z.string().nullable().optional(),
+  severity: IncidentSeveritySchema,
+  status: IncidentStatusSchema.default("investigating"),
+  root_cause: z.string().nullable().optional(),
+  created_at: z.string().datetime(),
+  resolved_at: z.string().datetime().nullable().optional(),
+  updated_at: z.string().datetime(),
+});
+export type Incident = z.infer<typeof IncidentSchema>;
+
+export interface OperationalMetricsSummary {
+  total_executions: number;
+  success_count: number;
+  failure_count: number;
+  success_rate: number; // 0 - 100
+  avg_duration_ms: number;
+  total_cost_cents: number;
+  firing_alerts_count: number;
+  critical_alerts_count: number;
+}
+
+// ============================================================================
+// 7. CONTRATOS DE API PADRÃO (/api/v1)
 // ============================================================================
 
 export interface ApiResponseMeta {

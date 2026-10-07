@@ -165,6 +165,13 @@ export const companyRepository = {
     return updated;
   },
 
+  listAllActivities(orgId: string, limit: number = 50): Activity[] {
+    return activitiesStore
+      .filter((a) => a.organization_id === orgId)
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+      .slice(0, limit);
+  },
+
   getActivities(companyId: string, orgId: string): Activity[] {
     return activitiesStore
       .filter((a) => a.company_id === companyId && a.organization_id === orgId)
@@ -183,5 +190,29 @@ export const companyRepository = {
 
   resetForTests() {
     companiesStore = [...initialCompanies];
+    activitiesStore = [
+      {
+        id: "act-1",
+        organization_id: DEFAULT_ORG_ID,
+        company_id: INITIAL_DEMO_COMPANY_ID,
+        actor_id: "00000000-0000-0000-0000-000000000001",
+        actor_name: "Vito",
+        action_type: "company.created",
+        title: "Empresa cadastrada",
+        description: "DBX Global cadastrada como empresa piloto do HUB.",
+        created_at: "2026-10-07T10:00:00.000Z",
+      },
+      {
+        id: "act-2",
+        organization_id: DEFAULT_ORG_ID,
+        company_id: INITIAL_DEMO_COMPANY_ID,
+        actor_id: "00000000-0000-0000-0000-000000000001",
+        actor_name: "Vito",
+        action_type: "onboarding.step_completed",
+        title: "Escopo contratado definido",
+        description: "Objetivos e escopo da DBX Global foram validados.",
+        created_at: "2026-10-07T10:30:00.000Z",
+      },
+    ];
   },
 };
