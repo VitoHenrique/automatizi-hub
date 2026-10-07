@@ -1,0 +1,38 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #F8FAFC; /* Slate 50 - Fundo claro, limpo e profissional */
+  --foreground: #0F172A; /* Slate 900 - Alto contraste para legibilidade */
+  --card: #FFFFFF;
+  --card-foreground: #0F172A;
+  --border: #E2E8F0; /* Slate 200 */
+  --muted: #F1F5F9; /* Slate 100 */
+  --muted-foreground: #64748B; /* Slate 500 */
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0B0F19; /* Fundo escuro focado em operação técnica */
+    --foreground: #F8FAFC;
+    --card: #111827;
+    --card-foreground: #F8FAFC;
+    --border: #1F2937;
+    --muted: #1F2937;
+    --muted-foreground: #94A3B8;
+  }
+}
+
+body {
+  color: var(--foreground);
+  background-color: var(--background);
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Foco de teclado visível e acessível (a11y) */
+:focus-visible {
+  outline: 2px solid #2563EB;
+  outline-offset: 2px;
+}
