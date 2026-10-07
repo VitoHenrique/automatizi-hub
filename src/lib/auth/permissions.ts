@@ -115,6 +115,8 @@ const ROLE_PERMISSIONS: Record<MembershipRole, Set<PermissionAction>> = {
     "alert:view",
   ]),
   service_agent: new Set([
+    "company:view",
+    "agent:view",
     "execution:trigger",
     "execution:view",
     "task:create",

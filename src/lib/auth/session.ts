@@ -24,6 +24,28 @@ export async function getAuthenticatedUserContext(
     }
   }
 
+  // 1. Checar autenticação Machine-to-Machine via API Key (Hermes / Service Identity)
+  const authHeader = headersList?.get("authorization");
+  const apiKeyHeader = headersList?.get("x-api-key");
+  const tokenCandidate = apiKeyHeader || (authHeader?.startsWith("Bearer atmz_") ? authHeader.replace(/^Bearer\s+/i, "") : null);
+
+  if (tokenCandidate) {
+    const { hermesRepository, hashApiKey } = await import("@/lib/hermes/store");
+    const keyHash = hashApiKey(tokenCandidate);
+    const keyRecord = hermesRepository.findApiKeyByHash(keyHash);
+
+    if (keyRecord) {
+      hermesRepository.recordKeyUsage(keyRecord.id);
+      return {
+        userId: keyRecord.id,
+        organizationId: keyRecord.organization_id,
+        role: keyRecord.role as MembershipRole,
+        scope: "global",
+        resourceId: null,
+      };
+    }
+  }
+
   const userId = headersList?.get("x-user-id");
   const organizationId = headersList?.get("x-organization-id");
   const role = (headersList?.get("x-user-role") as MembershipRole) || "operator";

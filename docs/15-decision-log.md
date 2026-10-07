@@ -111,6 +111,20 @@ O repositório GitHub antigo e o projeto Supabase antigo foram deletados. O Auto
 - Impacto: Rastreabilidade fim-a-fim de cada ação executada pelo agente com métricas em tempo real e resposta operacional auditada a incidentes.
 - Responsável: Antigravity / Vito
 
+## DEC-014 — Service Identity (API Keys), Idempotência e Contrato Operacional do Hermes
+- Data: 2026-10-07
+- Status: adotada
+- Contexto: A Fase 4 (API e Hermes) exige integração machine-to-machine segura, resiliência a falhas de rede com prevenção de duplicações e controle estrito sobre o que o orquestrador autônomo pode ou não realizar (docs/11-hermes-contract.md).
+- Decisão:
+  1. Criação das tabelas 'api_keys' (com hash SHA-256 e papéis restritos) e 'integrations' com RLS no PostgreSQL. O Hermes se autentica via Bearer Token ou header 'x-api-key' assumindo o papel 'service_agent'.
+  2. Implementação do middleware de idempotência ('Idempotency-Key'): armazena requisições por 24h; requisições repetidas com mesmo payload retornam o replay pré-computado sem duplicar mutações; requisições com a mesma chave e payload divergente retornam 409 Conflict.
+  3. Contrato estrito no endpoint '/api/v1/hermes/actions' e '/api/v1/hermes/context': Hermes tem permissão para consultar contexto sem secrets, criar tarefas operacionais, registrar execuções, emitir alertas e sugerir próximas ações; mas é bloqueado de promover agentes a produção, apagar registros, alterar papéis ou executar transações financeiras.
+  4. Endpoint '/api/v1/hermes/health' expondo Circuit Breaker e estado de resiliência, garantindo que o Automatizi HUB continue operante mesmo se o orquestrador oscilar.
+- Alternativas: Permitir chamadas livres sem chaves de idempotência arriscando tarefas duplicadas em caso de retry de rede; permitir que o Hermes execute mutações arbitrárias sem validação de regras de segurança.
+- Motivo: Segurança operacional para orquestração de IA autônoma e conformidade com os princípios inegociáveis do produto.
+- Impacto: Comunicação orquestrada, auditada, protegida contra repetição acidental e completamente desacoplada do cliente frontend.
+- Responsável: Antigravity / Vito
+
 ## Template para novas decisões
 ### DEC-XXX — Título
 - Data:
@@ -121,5 +135,6 @@ O repositório GitHub antigo e o projeto Supabase antigo foram deletados. O Auto
 - Motivo:
 - Impacto:
 - Responsável:
+
 
 

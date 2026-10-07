@@ -444,7 +444,134 @@ export interface OperationalMetricsSummary {
 }
 
 // ============================================================================
-// 7. CONTRATOS DE API PADRÃO (/api/v1)
+// 7. SCHEMAS DE API & HERMES (FASE 4)
+// ============================================================================
+
+export const ApiKeySchema = z.object({
+  id: z.string().uuid(),
+  organization_id: z.string().uuid(),
+  name: z.string().min(2, "Nome da chave é obrigatório"),
+  key_prefix: z.string(),
+  key_hash: z.string(),
+  role: z.enum(["service_agent", "operator", "analyst"]).default("service_agent"),
+  scopes: z.array(z.string()).default(["hermes:read", "hermes:operate"]),
+  last_used_at: z.string().datetime().nullable().optional(),
+  expires_at: z.string().datetime().nullable().optional(),
+  revoked_at: z.string().datetime().nullable().optional(),
+  created_at: z.string().datetime(),
+});
+export type ApiKey = z.infer<typeof ApiKeySchema>;
+
+export const CreateApiKeySchema = z.object({
+  name: z.string().min(2, "Nome da credencial é obrigatório"),
+  role: z.enum(["service_agent", "operator", "analyst"]).default("service_agent"),
+  scopes: z.array(z.string()).default(["hermes:read", "hermes:operate"]),
+  expires_in_days: z.number().int().positive().optional(),
+});
+export type CreateApiKeyInput = z.infer<typeof CreateApiKeySchema>;
+
+export const IntegrationProviderSchema = z.enum([
+  "meta_ads",
+  "dbx_crm",
+  "whatsapp_cloud",
+  "google_calendar",
+  "webhook",
+]);
+export type IntegrationProvider = z.infer<typeof IntegrationProviderSchema>;
+
+export const IntegrationStatusSchema = z.enum(["connected", "disconnected", "error"]);
+export type IntegrationStatus = z.infer<typeof IntegrationStatusSchema>;
+
+export const IntegrationSchema = z.object({
+  id: z.string().uuid(),
+  organization_id: z.string().uuid(),
+  company_id: z.string().uuid().nullable().optional(),
+  provider: IntegrationProviderSchema,
+  name: z.string().min(2, "Nome da integração é obrigatório"),
+  status: IntegrationStatusSchema.default("disconnected"),
+  last_sync_at: z.string().datetime().nullable().optional(),
+  error_details: z.string().nullable().optional(),
+  config: z.record(z.unknown()).default({}),
+  created_at: z.string().datetime(),
+  updated_at: z.string().datetime(),
+});
+export type Integration = z.infer<typeof IntegrationSchema>;
+
+export const CreateIntegrationSchema = z.object({
+  company_id: z.string().uuid().optional(),
+  provider: IntegrationProviderSchema,
+  name: z.string().min(2, "Nome da integração é obrigatório"),
+  config: z.record(z.unknown()).default({}),
+});
+export type CreateIntegrationInput = z.infer<typeof CreateIntegrationSchema>;
+
+export const HermesActionTypeSchema = z.enum([
+  "create_task",
+  "update_task",
+  "record_execution",
+  "trigger_alert",
+  "suggest_next_action",
+]);
+export type HermesActionType = z.infer<typeof HermesActionTypeSchema>;
+
+export const HermesActionSchema = z.object({
+  company_id: z.string().uuid(),
+  agent_id: z.string().uuid().optional(),
+  action_type: HermesActionTypeSchema,
+  tool_name: z.string().min(2, "Nome da ferramenta é obrigatório"),
+  reason: z.string().min(5, "Informe o motivo/racional da ação"),
+  payload: z.record(z.unknown()),
+});
+export type HermesActionInput = z.infer<typeof HermesActionSchema>;
+
+export interface HermesContextResponse {
+  organization: {
+    id: string;
+    name: string;
+    slug: string;
+  };
+  company: {
+    id: string;
+    name: string;
+    slug: string;
+    lifecycle_status: string;
+    health: string;
+    connected_systems: string[];
+    next_action?: string | null;
+  };
+  agents: Array<{
+    id: string;
+    name: string;
+    slug: string;
+    lifecycle_status: string;
+    health: string;
+    current_version: string;
+    accessed_systems: string[];
+  }>;
+  open_tasks: Array<{
+    id: string;
+    title: string;
+    kind: string;
+    priority: string;
+    agent_id?: string | null;
+  }>;
+  active_alerts: Array<{
+    id: string;
+    title: string;
+    severity: string;
+    agent_id?: string | null;
+  }>;
+  integrations: Array<{
+    provider: string;
+    name: string;
+    status: string;
+    last_sync_at?: string | null;
+  }>;
+  correlation_id: string;
+}
+
+// ============================================================================
+// 8. CONTRATOS DE API PADRÃO (/api/v1)
 // ============================================================================
 
 export interface ApiResponseMeta {
